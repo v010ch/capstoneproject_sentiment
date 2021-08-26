@@ -21,6 +21,8 @@ tst_*
 test_*
 log_*
 
+subm*
+
 *.bat
 *.sh
 
