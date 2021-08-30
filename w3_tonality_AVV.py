@@ -42,11 +42,12 @@ import nltk.stem as st
 
 import spacy
 
-from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-from gensim.sklearn_api import W2VTransformer
+#from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+#from gensim.sklearn_api import W2VTransformer
+import gensim.downloader as api
 
 
-# In[76]:
+# In[4]:
 
 
 from sklearn.pipeline import Pipeline
@@ -66,7 +67,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 
 
-# In[45]:
+# In[5]:
 
 
 import xgboost as xgb
@@ -98,7 +99,7 @@ PATH_SUBM = os.path.join(Path.cwd(), 'submissions')
 
 
 
-# In[8]:
+# In[31]:
 
 
 df = pd.read_csv(os.path.join(PATH_DATA, 'products_sentiment_train.tsv'), 
@@ -110,13 +111,13 @@ df.columns = ['text', 'target']
 df.shape
 
 
-# In[9]:
+# In[32]:
 
 
 df.head()
 
 
-# In[10]:
+# In[33]:
 
 
 df.target.value_counts()
@@ -131,7 +132,7 @@ df.target.value_counts()
 
 # ### Приводим к строчным (на всякий) и очищаем по порядку:
 
-# In[11]:
+# In[34]:
 
 
 # - все спецсимволы
@@ -139,7 +140,7 @@ df.target.value_counts()
 # - заменяем множественные пробелы на единичные
 
 
-# In[12]:
+# In[35]:
 
 
 clean_text = lambda x: re.sub(r"\s+", ' ', 
@@ -149,7 +150,7 @@ clean_text = lambda x: re.sub(r"\s+", ' ',
                              )
 
 
-# In[13]:
+# In[36]:
 
 
 df['text_cl'] = df.text.map(clean_text)
@@ -161,19 +162,19 @@ df['text_cl'] = df.text.map(clean_text)
 
 
 
-# In[14]:
+# In[37]:
 
 
 #tagged_data[:5]
 
 
-# In[15]:
+# In[38]:
 
 
 #lem_text("don't"), lem_text("i'll")
 
 
-# In[16]:
+# In[39]:
 
 
 #stem_text("don't"), stem_text("i'll")
@@ -181,7 +182,7 @@ df['text_cl'] = df.text.map(clean_text)
 
 # ### Лемматизация & стемминг
 
-# In[17]:
+# In[40]:
 
 
 lemm = st.WordNetLemmatizer()
@@ -192,21 +193,21 @@ stemm = st.RSLPStemmer()
 stem_text = lambda x: ' '.join([stemm.stem(el) for el in x.split()])
 
 
-# In[18]:
+# In[41]:
 
 
 df['text_cl'] = df.text.map(clean_text)
-df['text_cl'] = df.text_cl.map(lem_text)
-df['text_cl'] = df.text_cl.map(stem_text)
+#df['text_cl'] = df.text_cl.map(lem_text)
+#df['text_cl'] = df.text_cl.map(stem_text)
 
 
-# In[19]:
+# In[42]:
 
 
 df['text_cl'] = df.text_cl.map(lambda x: x.split())
 
 
-# In[20]:
+# In[43]:
 
 
 df.head()
@@ -224,9 +225,35 @@ df.head()
 
 
 
+# Загружаем готовый wordvector
+
+# https://github.com/RaRe-Technologies/gensim-data
+
+# In[126]:
+
+
+#word_vectors = api.load("glove-wiki-gigaword-300")
+#word_vectors = api.load("glove-twitter-200")#, return_path = True
+word_vectors = api.load("word2vec-google-news-300")
+
+
+# In[127]:
+
+
+word_vectors
+
+
+# 'C:\\Users\\****/gensim-data\\glove-wiki-gigaword-300\\glove-wiki-gigaword-300.gz'
+
+# In[ ]:
+
+
+
+
+
 # ### Подготавливаем к обучению по сетке
 
-# In[21]:
+# In[107]:
 
 
 train, test, train_target, test_target = train_test_split(df.text_cl, df.target, 
@@ -244,7 +271,7 @@ train, test, train_target, test_target = train_test_split(df.text_cl, df.target,
 
 # ### Параметры для перебора
 
-# In[24]:
+# In[108]:
 
 
 pipe_cnt = Pipeline([#('w2v', W2VTransformer(size=100, min_count=1, seed=1)),
@@ -252,11 +279,11 @@ pipe_cnt = Pipeline([#('w2v', W2VTransformer(size=100, min_count=1, seed=1)),
                       ])
 
 
-# In[25]:
+# In[109]:
 
 
 parameters_v0 = {
-        'clf': [LogisticRegression(), 
+        'clf': [#LogisticRegression(), 
                 LinearSVC(),
                 #SGDClassifier(), 
                 #RandomForestClassifier(),
@@ -266,36 +293,27 @@ parameters_v0 = {
     }
 
 
-# In[60]:
+# In[116]:
 
 
 parameters = [
-            {'clf': [LogisticRegression()]}, 
+            {'clf': [LogisticRegression(max_iter = 150)]}, 
             {'clf': [LinearSVC(max_iter = 1500)]},
-            #{'clf': [SGDClassifier()]}, 
-            #{'clf': [RandomForestClassifier()]},
-            #{'clf': [xgb.XGBClassifier(eval_metric = 'auc', use_label_encoder=False)]},
+            {'clf': [SGDClassifier()]}, 
+            {'clf': [RandomForestClassifier()]},
+            {'clf': [xgb.XGBClassifier(eval_metric = 'auc', use_label_encoder=False)]},
                      #xgb.XGBClassifier(tree_method='gpu_hist', gpu_id=0),
-            #{'clf': [LGBMClassifier()]},
+            {'clf': [LGBMClassifier()]},
 ]
 
 
-# In[63]:
+# In[ ]:
 
 
-par_size = [300, 200,]# 100, 50]#10, 20, 30, 50, ]
-par_window = [5,]# 4, 3,]# 2]
-#par_hs = [1,]# 0]
-par_niter = [50, 40,]# 30,]# 75,]# 100]#3, 5, 10, 50]
-par_min_count = [5, 3,]# 10, 2, 1]
-len(list(product(par_size, 
-                 par_window, 
-                 #par_hs, 
-                 par_niter, 
-                 par_min_count)))
 
 
-# In[97]:
+
+# In[117]:
 
 
 # Трансфорование данных (отзыва) в вектор
@@ -316,30 +334,115 @@ def transform_x2v(inp_model, inp_series):
     return transformed_ndarray
 
 
-# In[68]:
+# In[118]:
 
 
-get_ipython().run_cell_magic('time', '', 'warnings.filterwarnings("ignore")\n\n\nscores = [(\'model\', (0, 0, 0, 0), 0) for idx in range(5)]\nfor (sz, wind, it, mc) in tqdm(product(par_size, par_window, par_niter, par_min_count), \n                              total = len(list(product(par_size, par_window, par_niter, par_min_count)))):\n    model_x2v = W2VTransformer(size=sz, window = wind, hs = 1, iter = it, min_count = mc,\n                               seed = 16544873\n                              )\n    #model_x2v.fit(train)\n    model_x2v.fit(df.text_cl)\n    #train_x2v = transform_x2v(model_x2v, train)\n    train_x2v = np.nan_to_num(transform_x2v(model_x2v, train))\n\n    grid = GridSearchCV(pipe_cnt, parameters, cv = 5, scoring = \'roc_auc\', verbose = 0, n_jobs=-1)\n    ret = grid.fit(train_x2v, train_target)\n    if grid.best_score_ > scores[4][2]:\n        scores[4] = (grid.best_estimator_[\'clf\'].__class__, (sz, wind, it, mc), grid.best_score_)\n        scores.sort(key=lambda tup: tup[2], reverse = True)\n\n\n\n#warnings.filterwarnings("always")\nwarnings.filterwarnings("default")')
+# Трансфорование данных (отзыва) в вектор
+# требуется исключить слова, которые не встречались, т.к. выдаст ошибку
+# и полученные вектораотзыва усредняем по столбцам
+def transform_x2v_kv(inp_wv, inp_series):
+    transformed_ndarray = np.ndarray((inp_series.shape[0], inp_wv.vector_size))
+    
+    for row, idx in enumerate(inp_series.index):
+        vect = []    
+        for wrd in inp_series[idx]:
+            if wrd in inp_wv:
+                vect.append(inp_wv.get_vector(wrd))
+
+        transformed_ndarray[row] = np.mean(vect, axis = 0)
+    
+    return transformed_ndarray
+
+
+# In[131]:
+
+
+get_ipython().run_cell_magic('time', '', '#warnings.filterwarnings("ignore")\n\ntrain_x2v = np.nan_to_num(transform_x2v_kv(word_vectors, train))\n\ngrid = GridSearchCV(pipe_cnt, parameters, cv = 5, scoring = \'roc_auc\', verbose = 1, n_jobs=-1)\nret = grid.fit(train_x2v, train_target)\n\n\n#warnings.filterwarnings("always")\n#warnings.filterwarnings("default")')
 
 
 # Посмотрим на несколько лучших результатов
 
-# In[69]:
+# In[132]:
 
 
-scores
+grid.best_score_, grid.best_estimator_['clf'].__class__
 
-[(sklearn.svm._classes.LinearSVC, (200, 5, 50, 5), 0.8453186181634458),
- (sklearn.svm._classes.LinearSVC, (300, 5, 50, 5), 0.8447524810100875),
- (sklearn.svm._classes.LinearSVC, (200, 5, 40, 5), 0.8438951796456868),
- (sklearn.svm._classes.LinearSVC, (300, 5, 40, 5), 0.8374836539390291),
- (sklearn.svm._classes.LinearSVC, (300, 5, 50, 3), 0.8334031755938449)]
-# Промежуточные выводы /параметры для W2VTransformer:
-# - размер embedded вектора - 200
-# - max расстояние между словами всегда 5
-# - hs всегда 1
-# - кол-во итерций построения словаря - 50
-# - модель - LinearSVC
+
+# In[133]:
+
+
+[(el0, el1) for el0, el1 in zip(grid.cv_results_['mean_test_score'], grid.cv_results_['params'])]
+
+
+# In[ ]:
+
+
+
+
+word2vec-google-news-300
+
+[(0.8625631242771201, {'clf': LogisticRegression(max_iter=150)}),
+ (0.8636084672595828, {'clf': LinearSVC(max_iter=1500)}),
+ (0.858903773711076, {'clf': SGDClassifier()}),
+ (0.8193513369096534, {'clf': RandomForestClassifier()}),
+ (0.8438609086428558,
+  {'clf': XGBClassifier(base_score=None, booster=None, colsample_bylevel=None,
+                 colsample_bynode=None, colsample_bytree=None, eval_metric='auc',
+                 gamma=None, gpu_id=None, importance_type='gain',
+                 interaction_constraints=None, learning_rate=None,
+                 max_delta_step=None, max_depth=None, min_child_weight=None,
+                 missing=nan, monotone_constraints=None, n_estimators=100,
+                 n_jobs=None, num_parallel_tree=None, random_state=None,
+                 reg_alpha=None, reg_lambda=None, scale_pos_weight=None,
+                 subsample=None, tree_method=None, use_label_encoder=False,
+                 validate_parameters=None, verbosity=None)}),
+ (0.8457348235492252, {'clf': LGBMClassifier()})]glove-twitter-200
+
+[(0.8583412586962285, {'clf': LogisticRegression(max_iter=150)}),
+ (0.8469416148422233, {'clf': LinearSVC(max_iter=1500)}),
+ (0.847100122100122, {'clf': SGDClassifier()}),
+ (0.8061515366535652, {'clf': RandomForestClassifier()}),
+ (0.829008004616524,
+  {'clf': XGBClassifier(base_score=None, booster=None, colsample_bylevel=None,
+                 colsample_bynode=None, colsample_bytree=None, eval_metric='auc',
+                 gamma=None, gpu_id=None, importance_type='gain',
+                 interaction_constraints=None, learning_rate=None,
+                 max_delta_step=None, max_depth=None, min_child_weight=None,
+                 missing=nan, monotone_constraints=None, n_estimators=100,
+                 n_jobs=None, num_parallel_tree=None, random_state=None,
+                 reg_alpha=None, reg_lambda=None, scale_pos_weight=None,
+                 subsample=None, tree_method=None, use_label_encoder=False,
+                 validate_parameters=None, verbosity=None)}),
+ (0.8343619897118882, {'clf': LGBMClassifier()})]glove-wiki-gigaword-300
+
+[(0.855325131821075, {'clf': LogisticRegression()}),
+ (0.8418739025229897, {'clf': LinearSVC(max_iter=1500)}),
+ (0.838749947370637, {'clf': SGDClassifier()}),
+ (0.802623171284429, {'clf': RandomForestClassifier()}),
+ (0.8253392891197151,
+  {'clf': XGBClassifier(base_score=None, booster=None, colsample_bylevel=None,
+                 colsample_bynode=None, colsample_bytree=None, eval_metric='auc',
+                 gamma=None, gpu_id=None, importance_type='gain',
+                 interaction_constraints=None, learning_rate=None,
+                 max_delta_step=None, max_depth=None, min_child_weight=None,
+                 missing=nan, monotone_constraints=None, n_estimators=100,
+                 n_jobs=None, num_parallel_tree=None, random_state=None,
+                 reg_alpha=None, reg_lambda=None, scale_pos_weight=None,
+                 subsample=None, tree_method=None, use_label_encoder=False,
+                 validate_parameters=None, verbosity=None)}),
+ (0.8239905688181549, {'clf': LGBMClassifier()})]
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
 # 
 
 # In[ ]:
@@ -350,28 +453,22 @@ scores
 
 # ### Попробуем определить причины ошибок по тесту
 
-# In[70]:
+# In[139]:
 
 
-model_x2v = W2VTransformer(size=200, window = 5, hs = 1, iter = 50, min_count = 5,
-                           seed = 16544873
-                          )
-#model_x2v.fit(train)
-model_x2v.fit(df.text_cl)
-#train_x2v = transform_x2v(model_x2v, train)
-train_x2v = np.nan_to_num(transform_x2v(model_x2v, train))
+#train_x2v = np.nan_to_num(transform_x2v(model_x2v, train))
 
 model = LinearSVC(max_iter = 2500)
 model.fit(train_x2v, train_target)
 
 
-# In[73]:
+# In[142]:
 
 
-test_pred = model.predict(np.nan_to_num(transform_x2v(model_x2v, test)))
+test_pred = model.predict(np.nan_to_num(transform_x2v_kv(word_vectors, test)))
 
 
-# In[74]:
+# In[143]:
 
 
 confusion_matrix(test_target, test_pred)
@@ -379,7 +476,7 @@ confusion_matrix(test_target, test_pred)
 
 # только половина отрицательных отзывов, посмотрим их
 
-# In[75]:
+# In[144]:
 
 
 for idx in range(test.shape[0]):
@@ -403,47 +500,70 @@ for idx in range(test.shape[0]):
 # #### в 3-4 итерации. в начале ищем приближенные лучшие значения(закомментированные параметры ниже),   
 # #### потом их уточняем
 
-# In[87]:
+# In[145]:
 
 
 pipe_cnt = Pipeline([('clf', SVC()),
                       ])
 
 
-# In[115]:
+# In[168]:
 
 
 model_parameters = {
     'clf__max_iter' : [2500, 2000],# 1500],
-    'clf__kernel': ['linear'],# 'poly', 'rbf', 'sigmoid',],
-    #'clf__C': np.logspace(-2, 2, 10),
-    'clf__C': np.linspace(1.7, 2, 40),
-    #'clf__class_weight': [{0: 0.5 - shift, 1:0.5 + shift} for shift in np.linspace(-0.1, 0.1, 20)],# + ['balanced'],
-    'clf__class_weight': [{0: 0.56 - shift, 1:0.44 + shift} for shift in np.linspace(-0.01, 0.01, 20)]# + ['balanced'],
+    'clf__kernel': ['rbf', 'linear'], #'poly', 'sigmoid',],
+    #'clf__C': np.logspace(-1, 2, 20),
+    'clf__C': np.linspace(3.5, 4, 10),
+    'clf__class_weight': [{0: 0.53 - shift, 1:0.47 + shift} for shift in np.linspace(-0.01, 0.01, 20)] + ['balanced'],
+    #'clf__class_weight': [{0: 0.56 - shift, 1:0.44 + shift} for shift in np.linspace(-0.01, 0.01, 20)]# + ['balanced'],
 }
 
 
-# In[133]:
+# In[ ]:
 
 
-get_ipython().run_cell_magic('time', '', "\nmodel_x2v = W2VTransformer(size=200, window = 5, hs = 1, iter = 50, min_count = 5,\n                           seed = 16544873\n                          )\nmodel_x2v.fit(df.text_cl)\ntrain_x2v = np.nan_to_num(transform_x2v(model_x2v, train))\n\ngrid_tune = GridSearchCV(pipe_cnt, model_parameters, cv = 5, scoring = 'roc_auc', verbose = 1, n_jobs=-1)\ngrid_tune.fit(train_x2v, train_target)\ngrid_tune.best_estimator_")
 
 
-# In[145]:
+
+# In[169]:
+
+
+get_ipython().run_cell_magic('time', '', "\ntrain_x2v = np.nan_to_num(transform_x2v_kv(word_vectors, train))\n\ngrid_tune = GridSearchCV(pipe_cnt, model_parameters, cv = 5, scoring = 'roc_auc', verbose = 1, n_jobs=-1)\ngrid_tune.fit(train_x2v, train_target)\ngrid_tune.best_estimator_")
+
+
+# In[170]:
 
 
 grid_tune.best_params_
 
 
-# In[146]:
+# In[171]:
 
 
 grid_tune.best_score_
 
-0.842950668330993
+
+# 0.8729543895365397
+# {'clf__C': 3.6666666666666665,
+#  'clf__class_weight': {0: 0.531578947368421, 1: 0.4684210526315789},
+#  'clf__kernel': 'rbf',
+#  'clf__max_iter': 2500}
+# 
+# 0.8729120383785698
+# {'clf__C': 3.7368421052631575,
+#  'clf__class_weight': {0: 0.5342105263157895, 1: 0.46578947368421053},
+#  'clf__kernel': 'rbf',
+#  'clf__max_iter': 2500}
+#  
+# 0.8729205209935433
+# ('clf', SVC(C=3.79269019073225,
+# class_weight={0: 0.5368421052631579, : 0.4631578947368421},
+# max_iter=2500))
+
 # Посмотрим на несколько лучших результатов, после чего уточняем параметры и повторяем (несколько раз) GridSearchCV
 
-# In[136]:
+# In[173]:
 
 
 interested_tune = np.where(grid_tune.cv_results_['rank_test_score'] <= 5)
@@ -453,12 +573,12 @@ for field in model_parameters.keys():
         print(grid_tune.cv_results_['param_' + field][idx])
 
 
-# In[137]:
+# In[174]:
 
 
 grid_tune.cv_results_['mean_test_score'][np.where(grid_tune.cv_results_['rank_test_score'] <= 5)]
 
-array([0.84258561, 0.84246868, 0.84295067, 0.84274984, 0.84246112])
+
 # In[ ]:
 
 
@@ -472,12 +592,13 @@ array([0.84258561, 0.84246868, 0.84295067, 0.84274984, 0.84246112])
 
 
 # Остановимся на следующих параметрах:    
-#     
+# 
+# word_vectors - "word2vec-google-news-300"   
 # SVC
-# kernel = 'linear'
-# C =  2.41025641025641
-# сlass_weight = {0: 0.5246153846153846, 1: 0.47538461538461535}
-# max_iter = 2000
+# kernel = 'rbf'
+# C =  3.6666666666666665
+# сlass_weight = {0: 0.531578947368421, 1: 0.4684210526315789}
+# max_iter = 2500
 
 # Получим модель и submission для выбранных параметров
 
@@ -489,7 +610,7 @@ array([0.84258561, 0.84246868, 0.84295067, 0.84274984, 0.84246112])
 
 # ### Подготавливаем данные для обучения финальной модели и прогноза
 
-# In[147]:
+# In[175]:
 
 
 df_test = pd.read_csv(os.path.join(PATH_DATA, 'products_sentiment_test.tsv'),
@@ -499,38 +620,38 @@ df_test = pd.read_csv(os.path.join(PATH_DATA, 'products_sentiment_test.tsv'),
 df_test.shape
 
 
-# In[148]:
+# In[176]:
 
 
 #df_test.head(), df_test.tail()
 
 
-# In[149]:
+# In[177]:
 
 
 subm = pd.read_csv(os.path.join(PATH_DATA, 'products_sentiment_sample_submission.csv'))
 subm.shape
 
 
-# In[150]:
+# In[178]:
 
 
 #subm.head(), subm.tail()
 
 
-# In[151]:
+# In[179]:
 
 
 test_df = df_test.text.map(clean_text)
-test_df = test_df.map(lem_text)
-test_df = test_df.map(stem_text)
+#test_df = test_df.map(lem_text)
+#test_df = test_df.map(stem_text)
 test_df = test_df.map(lambda x: x.split())
 
 
-# In[152]:
+# In[180]:
 
 
-test_x2v = np.nan_to_num(transform_x2v(model_x2v, test_df))
+test_x2v = np.nan_to_num(transform_x2v_kv(word_vectors, test_df))
 
 
 # In[ ]:
@@ -547,17 +668,17 @@ test_x2v = np.nan_to_num(transform_x2v(model_x2v, test_df))
 
 
 
-# In[153]:
+# In[181]:
 
 
 pred = grid_tune.best_estimator_.predict(test_x2v)
 subm.y = pred
 
 
-# In[154]:
+# In[183]:
 
 
-subm.to_csv(os.path.join(PATH_SUBM, 'gensim_w2v_own_lsvc_tuned.csv'), index = False)
+subm.to_csv(os.path.join(PATH_SUBM, 'gensim_w2v_gglnews300_svc_tuned_no_ls.csv'), index = False)
 
 
 # In[ ]:
@@ -566,7 +687,7 @@ subm.to_csv(os.path.join(PATH_SUBM, 'gensim_w2v_own_lsvc_tuned.csv'), index = Fa
 
 
 
-# pb 0.74000
+# pb 0.80888
 
 # In[ ]:
 
