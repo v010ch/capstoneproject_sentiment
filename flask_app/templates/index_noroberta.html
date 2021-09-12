@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='fonts/icomoon/style.css') }}">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/owl.carousel.min.css') }}">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+
+  <!-- Style -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/button.css') }}">
+
+
+  <title>Выбор модели</title>
+</head>
+
+<body>
+  <form action="{{ url_for('index_page') }}" method=post>
+
+    <div class="content">
+
+      <div class="container">
+        <h2 class="mb-5">Доступные модели и описание их параметров</h2>
+
+        <div class="table-responsive custom-table-responsive">
+
+          <table class="table custom-table">
+            <thead>
+
+              <tr>
+                <th scope="col">
+
+                </th>
+
+                <th scope="col"><span style="color:#FFFAFA">Модель</span></th>
+                <th scope="col"><span style="color:#FFFAFA">Занимаемое место на диске</span></th>
+                <th scope="col"><span style="color:#FFFAFA">Потребление памяти</span></th>
+                <th scope="col"><span style="color:#FFFAFA">Время загрузки модели в память<sup>1, 2</sup></span></th>
+                <th scope="col"><span style="color:#FFFAFA">Время определения тональности<sup>1, 3</sup></span></th>
+                <th scope="col"><span style="color:#FFFAFA">Значение ROC-AUC метрики на тестовых данных kagle
+                    inclass</span></th>
+              </tr>
+
+            </thead>
+            <tbody>
+              <tr scope="row">
+                <th scope="col">
+                  <label class="control control--checkbox">
+                    <input name="model_type" type="radio" value="tf-idf" checked>
+                    <div class="control__indicator"></div>
+                  </label>
+                </th>
+
+                <td>
+                  Легковесная
+                </td>
+                <td><span style="color:#00CC00">менее 1 МБ</span></td>
+                <td><span style="color:#00CC00">менее 500 МБ</span></td>
+                <td><span style="color:#00CC00">2.4 мс</span></td>
+                <td><span style="color:#00CC00">4.7 мс</span></td>
+                <td><span style="color:#CC0000">0.79333</span></td>
+              </tr>
+              <tr class="spacer">
+                <td colspan="100"></td>
+              </tr>
+              <tr>
+                <th scope="col">
+                  <label class="control control--checkbox">
+                    <input name="model_type" type="radio" value="base" disabled>
+                    <div class="control__indicator"></div>
+                  </label>
+                </th>
+                <td>Средняя</td>
+                <td>500 МБ</td>
+                <td><span>до 1,9 ГБ</span></td>
+                <td>2 с</td>
+                <td>4.5 с</td>
+                <td><span style="color:#00CC00">0.89111</span></td>
+              </tr>
+              <tr class="spacer">
+                <td colspan="100"></td>
+              </tr>
+              <tr>
+                <th scope="col">
+                  <label class="control control--checkbox">
+                    <input name="model_type" type="radio" value="large" disabled>
+                    <div class="control__indicator"></div>
+                  </label>
+                </th>
+                <td>Тяжелая</td>
+                <td><span style="color:#CC0000">1.43 ГБ</span></td>
+                <td><span style="color:#CC0000">до 3,2 ГБ</span></td>
+                <td><span style="color:#CC0000">5.3 с</span></td>
+                <td><span style="color:#CC0000">16.4 с</span></td>
+                <td>0.86666</td>
+              </tr>
+              <tr class="spacer">
+                <td colspan="100"></td>
+              </tr>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+        <sup>1</sup> - в google colab<br>
+        <sup>2</sup> - при условии уже загруженной модели из интернета<br>
+        <sup>3</sup> - отзыва в 100 слов<br><br>
+
+
+        <div> 
+            <input type=submit value="Выбрать модель" class="button" id="button-3" style="color:#FFFAFA;background:#264653">
+            <div id="circle"></div>
+        </div>
+
+      </div>
+      
+    </div>
+
+
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </form>
+</body>
+
+</html>

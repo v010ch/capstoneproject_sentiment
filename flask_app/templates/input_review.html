@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+
+	<link rel="stylesheet" href="{{ url_for('static', filename='fonts/icomoon/style.css') }}">
+
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/owl.carousel.min.css') }}">
+
+	<!-- Bootstrap CSS -->
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+
+	<!-- Style -->
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/button.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/text_input.css') }}">
+
+
+</head>
+
+
+<body>
+	<div class="content">
+		<div class="container">
+
+			<div class="form__group">
+				<label for="name" class="form__label">Ваш отзыв</label>
+				<form action="{{ url_for('index_page') }}" method=post>
+					<dd><textarea class="form__input" type="text" name=text rows=5 cols=40>{{ text }}</textarea>
+						<br>
+						<dl>
+							<!--<dd><input type=submit value="Тональность?"> -->
+							<div>
+								<input type=submit value="Тоальность?" class="button" id="button-3"
+									style="color:#FFFAFA;background:#264653">
+								<div id="circle"></div>
+							</div>
+						</dl>
+						<label for="name" class="form__label">Тональность отзыва:</label>
+						<label for="name" name=prediction_message class="form__label">{{ prediction_message }}</label>
+				</form>
+			</div>
+
+		</div>
+	</div>
+
+
+</body>
+
+</html>

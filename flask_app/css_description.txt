@@ -1,0 +1,14 @@
+for flask ?should? be stored at 'static' on level flask_app
+
+
+css/style.css - font, background, checkboxes view
+bootstrap.min.css - ? box places on screen?
+fonts/icomoon/style.css - view of checkboxes
+
+owl.carousel.min.css - ?nothing?
+
+
+
+
+
+
