@@ -1,0 +1,4 @@
+RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckodriver-v0.30.0-linux64.tar.gz
+RUN tar -x geckodriver -zf geckodriver-v0.30.0-linux64.tar.gz -O > /usr/local/bin/geckodriver
+RUN chmod +x /usr/local/bin/geckodriver
+RUN rm geckodriver-v0.30.0-linux64.tar.gz

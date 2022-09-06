@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
+
+
+## ноутбук выполняется на колабе
+
+
+# In[2]:
 
 
 import os
+from typing import List
 import json
 from pathlib import Path
 import re
@@ -65,6 +72,8 @@ from transformers import Trainer, TrainingArguments
 
 #from datasets import load_metric
 
+
+# Подключаем гугл диск с данными
 
 # In[ ]:
 
@@ -137,33 +146,32 @@ df['clean_text'] = df.review.map(clean_text)
 
 #set_tone = lambda x: 'pos' if int(x) >= 4 else 'neg'
 set_tone = lambda x: 1 if int(x) >= 4 else 2
-
-
-# In[ ]:
-
-
 df['tone'] = df.rating.map(set_tone)
 
+
+# Перемешиваем отзывы
 
 # In[ ]:
 
 
 df = df.sample(frac=1).reset_index(drop=True)
-
-
-# In[ ]:
-
-
 df.drop(['Unnamed: 0'], axis = 1, inplace = True)
-
-
-# In[ ]:
-
-
 df.head()
 
 
-# Пояснения нужны?)
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# Прдготовливаем тренировочную и тестовую выборки
 
 # In[ ]:
 
@@ -209,23 +217,31 @@ tokenizer = AutoTokenizer.from_pretrained(PRE_TRAINED_MODEL_NAME)
 
 
 train_tokens = tokenizer(list(train.values), truncation=True, padding=True, max_length=MAX_LENGTH)
-test_tokens = tokenizer(list(test.values), truncation=True, padding=True, max_length=MAX_LENGTH)
+test_tokens  = tokenizer(list(test.values),  truncation=True, padding=True, max_length=MAX_LENGTH)
 
 
 # In[ ]:
 
 
 class TonalityDataset(torch.utils.data.Dataset):
-    def __init__(self, encodings, labels):
+    def __init__(self, encodings, labels: List[str]) -> None:
         self.encodings = encodings
         self.labels = labels
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> int:
+        """
+        Получение метки класса из тензора
+        args:
+            idx - индекс требуемой метки класса
+        return:
+            ште - метка класса
+        """
         item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
         item["labels"] = torch.tensor([self.labels[idx]])
+        
         return item
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.labels)
 
 
@@ -242,11 +258,16 @@ test_dataset  = TonalityDataset(test_tokens,  test_lbl.values)
 # 0: NEUTRAL
 # 1: POSITIVE
 # 2: NEGATIVE
-def compute_metrics(pred):
+def compute_metrics(pred) -> Dict:
+    """
+    Расчет метрики roc-auc для расчитанных и истиных значениях классов
+    """
+    
     labels = pred.label_ids
     preds = pred.predictions.argmax(-1)
-    # calculate accuracy using sklearn's function
+    # calculate roc_auc_score using sklearn's function
     rocauc = roc_auc_score(labels, preds)
+    
     return {
         'roc-auc': rocauc,
     }
@@ -299,14 +320,11 @@ model.classifier
 # In[ ]:
 
 
+#не использовулось в финальном решении, т.к. веса джля не исполльзуемого класса и так будут занулены
+
+#заменяем голову модели на выход для 2х классов
 #model.classifier = torch.nn.Linear(in_features=768, out_features=2, bias=True)
 #model.classifier
-
-
-# In[ ]:
-
-
-#dir(model)
 
 
 # In[ ]:
@@ -424,7 +442,14 @@ subm.y.value_counts()
 
 
 @torch.no_grad()
-def predict(text):
+def predict(text: List[str]) -> List[float, float]:
+    """
+    Предсказываем метки класса для отзывов
+    args:
+        text - тексты отзывов
+    return:
+        вероятности классов
+    """
     inputs = tokenizer(text, max_length=512, padding=True, truncation=True, return_tensors='pt')
     outputs = model(**inputs)
     predicted = torch.nn.functional.softmax(outputs.logits, dim=1)
@@ -441,8 +466,8 @@ get_ipython().run_cell_magic('time', '', 'pred = predict(data)')
 # In[ ]:
 
 
+# по вероятностям классов разделим на позитивные и неготивные отзывы
 for idx in subm.index:
-  #print(pred[idx][0].item())
     if pred[idx][1].item() > pred[idx][2].item():
         subm.loc[idx, 'y'] = 'pos'
     else:
@@ -457,15 +482,12 @@ subm.y.value_counts()
 
 
 
+# Сохраним в сабмит
+
 # In[ ]:
 
 
 submname = 'ru-blanchefort-rurewiew_tuned_1epochs'
-
-
-# In[ ]:
-
-
 subm.to_csv(os.path.join('.', f'{submname}.csv'), index = False)
 
 
@@ -493,6 +515,7 @@ files.download(f'{submname}.csv')
 # In[ ]:
 
 
+results:
 XXXXXXX ru-blanchefort-rurewiew_stem
 neg    87
 pos    13

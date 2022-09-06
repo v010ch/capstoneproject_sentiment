@@ -9,10 +9,17 @@ from pathlib import Path
 import pickle as pkl
 import time
 from tqdm import notebook  as pbar
+from typing import Optional
 
 from selenium import webdriver
 #from selenium.webdriver.common.keys import Keys
 #from selenium.webdriver.common.by import By
+
+
+# In[ ]:
+
+
+from selenium.webdriver.common.by import By
 
 
 # In[ ]:
@@ -44,13 +51,13 @@ get_ipython().run_line_magic('pylab', 'inline')
 # Из одной презентации на тему "как получить данные, когда вам их не хотят отдавать" я помню, что основная причина блока - это не соответствие   
 # заголовка заголовку браузера. И в requests и в spacy есть возможность выставлять заголовки, но это приходится делать вручную, да и при смене   
 # в браузерах их придется обновлять. Так же в своей практике сталкивался с тем, что часть страницы может быть сгенерирована js скриптом, это   
-# приводит к тому, чтор requests и bs4 эти данные не увидят. Для обхода этого используют selenium, да вот руки не доходили попробовать.   
+# приводит к тому, что requests и bs4 эти данные не увидят. Для обхода этого используют selenium, да вот руки не доходили попробовать.   
 # Теперь есть шанс - будем использовать selenium.
 
 # Хорошо, с заголовками разобрались, вторая известная мне причина блока - запросы чаще определенного промежутка. В презентации говорилось о 3х сек.   
 # Достаточно долго, если нам необходимо собрать много отзывов. Попробуем ускорить.   
 # Будем генерировать запросы с частотой из 3х распределений. В целом, нам нужны распределения скошенные влево. Используем gamma, chi2 и нормальное (куда уж без него).   
-# Но так мы бцдем получать и значения задержки около 0, так и в 20 сек и более. Так что установим ограничение: запросы не могут быть меньше MIN_DELAY (мы же не   
+# Но так мы будем получать и значения задержки около 0, так и в 20 сек и более. Так что установим ограничение: запросы не могут быть меньше MIN_DELAY (мы же не   
 # хотим попасть в блок и ждать сутки или более пока нас разблокируют, мы хотим побыстрее собрать данные и закончить неделю) и дольше MAX_DELAY.
 
 # Все, с исходными условиями разобрались - пробуем различные варианты.
@@ -71,26 +78,63 @@ MAX_DELAY = 4.8 #7.22 #9.181
 # In[ ]:
 
 
-def pauserealuseremulate(numb_load, last_time):
-    
-    if numb_load %7 == 0:
-        pause_time = sts.norm.rvs(loc=2, scale=3, size=1)[0]
-    elif numb_load %3 == 0:
-        pause_time = sts.chi2.rvs(df = 1.7, loc = 0, scale = 1, size=1)[0]
-    else:
-        pause_time = sts.gamma.rvs(a = 1, loc = 1, scale = 2, size=1)[0]
+class UserEmulate:
+    def __init__(self, inp_min_delay: int, inp_max_delay: int) -> None:
+        self.min_delay = inp_min_delay
+        self.max_delay = inp_max_delay
         
-    if (time.time() - last_time) > pause_time:
+        self.last_time = time.time()
+        self.numb_load = 0
+
+
+        
+        
+    def reset(self, inp_min_delay: Optional[int], inp_max_delay: Optional[int]) -> None:
+        """
+        Сброс парметров и выставление новых мин и макс задержки
+        args
+            inp_min_delay - минимальная задержка между загрузками страниц (опционально)
+            inp_max_delay - максимальная задержка между загрузками страниц (опционально)
+        """
+        self.last_time = time.time()
+        self.numb_load = 0
+        
+        if isinstance(inp_min_delay, int):
+            self.min_delay = inp_min_delay
+            
+        if isinstance(inp_max_delay, int):
+            self.max_delay = inp_max_delay
+        
+        
+        
+        
+    def pauserealuseremulate(self) -> None:
+        """
+        Эмуляция задержки между кликами пользователя.
+        Каждый седьмой клик из нормального распределения
+        Каждый третий (при не кратности 7) из хи-квадрат
+        Остальные из гамма
+        """
+        if self.numb_load %7 == 0:
+            pause_time = sts.norm.rvs(loc=2, scale=3, size=1)[0]
+        elif self.numb_load %3 == 0:
+            pause_time = sts.chi2.rvs(df = 1.7, loc = 0, scale = 1, size=1)[0]
+        else:
+            pause_time = sts.gamma.rvs(a = 1, loc = 1, scale = 2, size=1)[0]
+
+        if (time.time() - self.last_time) > pause_time:
+            return
+
+        if pause_time >= self.min_delay and pause_time <= self.max_delay:
+            #print(pause_time)
+            time.sleep(pause_time - abs(time.time() - self.last_time))
+            self.last_time = time.time()
+            self.numb_load += 1
+            pass
+        else:
+            pauserealuseremulate()
+
         return
-    
-    if pause_time >= MIN_DELAY and pause_time <= MAX_DELAY:
-        #print(pause_time)
-        time.sleep(pause_time - abs(time.time() - last_time))
-        pass
-    else:
-        pauserealuseremulate(numb_load, last_time)
-    
-    return
 
 
 # In[ ]:
@@ -98,6 +142,8 @@ def pauserealuseremulate(numb_load, last_time):
 
 
 
+
+# Загрузка списка уже загруженных отзывов, если загрузка осуществляется в несколько запусков
 
 # In[ ]:
 
@@ -138,6 +184,7 @@ sites = ['https://irecommend.ru/catalog/list/55'] + [f'https://irecommend.ru/cat
 
 
 driver = webdriver.Firefox(executable_path = "C:\\WebDrivers\\bin\\geckodriver")
+ue = UserEmulate(MIN_DELAY, MAX_DELAY)
 
 
 # In[ ]:
@@ -146,24 +193,11 @@ driver = webdriver.Firefox(executable_path = "C:\\WebDrivers\\bin\\geckodriver")
 
 
 
-# In[ ]:
-
-
-
-
+# Загружаем отзывы
 
 # In[ ]:
 
 
-#for i in range(100):
-#    pauserealuseremulate(i, time.time()) 
-
-
-# In[ ]:
-
-
-load_number = 0
-last_load = time.time()
 reviews_page_df = DataFrame()
 
 #for page_number, url in enumerate(sites[:9]):
@@ -174,19 +208,20 @@ for page_number, url in pbar.tqdm(enumerate(sites[:40]), position=0, leave = Tru
         
     print(url)
     # pause for emulate user behavior
-    pauserealuseremulate(load_number, last_load)
-    last_load = time.time()
-    load_number += 1
+    ue.pauserealuseremulate()
     # load url
     driver.get(url)
     # reviews by phones
-    phone_names = driver.find_elements_by_class_name('title')
+    #phone_names = driver.find_elements_by_class_name('title')
+    phone_names = driver.find_elements(By.CLASS_NAME, 'title')
     phone_names = [el.text for el in phone_names]
     # some data doubled. stay only one from two
-    phones = driver.find_elements_by_class_name('read-all-reviews-link')
+    #phones = driver.find_elements_by_class_name('read-all-reviews-link')
+    phones = driver.find_elements(By.CLASS_NAME, 'read-all-reviews-link')
     phones = [el.get_property('href') for idx, el in enumerate(phones) if idx%2 == 0]
     # number of reviews on this url
-    ttl_size = driver.find_elements_by_class_name('counter')
+    #ttl_size = driver.find_elements_by_class_name('counter')
+    ttl_size = driver.find_elements(By.CLASS_NAME, 'counter')
     ttl_size = [int(el.get_property('innerHTML')) for idx, el in enumerate(ttl_size) if idx%2 == 0]
     
     tmp = [(el0, el1) for idx, (el0, el1) in enumerate(zip(phones, ttl_size))]
@@ -202,34 +237,26 @@ for page_number, url in pbar.tqdm(enumerate(sites[:40]), position=0, leave = Tru
     for idx in pbar.tqdm(range(len(phones)), position=1, leave = True):
     #for idx in pbar.tqdm(range(3), position=0, leave = True):
         #print(phone_names[idx], phones[idx])
-        
-        #if time.time() - last_load < 30:
-        #    time.sleep(30 - abs(time.time() - last_load))
-        pauserealuseremulate(load_number, last_load)
-        last_load = time.time()
-        load_number += 1
-        
+        ue.pauserealuseremulate()
         driver.get(phones[idx])
         
-        reviews = driver.find_elements_by_class_name('more')
+        #reviews = driver.find_elements_by_class_name('more')
+        reviews = driver.find_elements(By.CLASS_NAME, 'more')
         reviews = [el.get_property('href') for el in reviews]
         
         #for review_link in pbar.tqdm(reviews, position=1, leave = True):
         for review_link in reviews:
-            #print(review_link)
-            #if time.time() - last_load < 30:
-            #    time.sleep(30 - abs(time.time() - last_load))
-            pauserealuseremulate(load_number, last_load)
-            last_load = time.time()
-            load_number += 1
-            
+            ue.pauserealuseremulate() 
             driver.get(review_link)
             
             # zero rating - just ad
-            rating = driver.find_elements_by_class_name("fivestarWidgetStatic")[1]
-            rating = len(rating.find_elements_by_class_name('on'))
+            #rating = driver.find_elements_by_class_name("fivestarWidgetStatic")[1]
+            rating = driver.find_elements(By.CLASS_NAME, "fivestarWidgetStatic")[1]
+            #rating = len(rating.find_elements_by_class_name('on'))
+            rating = len(rating.find_elements(By.CLASS_NAME, 'on'))
             #print(rating)
-            text = driver.find_elements_by_class_name("views-field-teaser")[0].text
+            #text = driver.find_elements_by_class_name("views-field-teaser")[0].text
+            text = driver.find_elements(By.CLASS_NAME, "views-field-teaser")[0].text
             #print(text[:20])
             reviews_page_df.loc[index, 'phone']  = phone_names[idx]
             reviews_page_df.loc[index, 'review'] = text
