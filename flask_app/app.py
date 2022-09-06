@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 from sentiment_analyze_models import ModelTfIdf, ModelROBERTA
 from flask import Flask, render_template, request
 app = Flask(__name__)
@@ -39,7 +40,7 @@ except:
 #MODELS_PATH = os.path.join(Path.cwd().parents[0], 'models')
 
 
-def get_model(inp_type):
+def get_model(inp_type: str):
     global setup
     
     if inp_type == 'tf-idf':
@@ -54,7 +55,7 @@ def get_model(inp_type):
 
 
 @app.route("/", methods=["POST", "GET"])
-def index_page(text="", model_type = '', prediction_message=""):
+def index_page(text: Optional[str] = '', model_type: Optional[str] = '', prediction_message: Optional[str] = ''):
     global model_selected
     global model
     
