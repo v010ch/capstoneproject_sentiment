@@ -79,7 +79,7 @@ MAX_DELAY = 4.8 #7.22 #9.181
 
 
 class UserEmulate:
-    def __init__(self, inp_min_delay: int, inp_max_delay: int) -> None:
+    def __init__(self, inp_min_delay: float, inp_max_delay: float) -> None:
         self.min_delay = inp_min_delay
         self.max_delay = inp_max_delay
         
@@ -89,7 +89,7 @@ class UserEmulate:
 
         
         
-    def reset(self, inp_min_delay: Optional[int], inp_max_delay: Optional[int]) -> None:
+    def reset(self, inp_min_delay: Optional[float], inp_max_delay: Optional[float]) -> None:
         """
         Сброс парметров и выставление новых мин и макс задержки
         args
@@ -99,10 +99,10 @@ class UserEmulate:
         self.last_time = time.time()
         self.numb_load = 0
         
-        if isinstance(inp_min_delay, int):
+        if isinstance(inp_min_delay, float):
             self.min_delay = inp_min_delay
             
-        if isinstance(inp_max_delay, int):
+        if isinstance(inp_max_delay, float):
             self.max_delay = inp_max_delay
         
         
