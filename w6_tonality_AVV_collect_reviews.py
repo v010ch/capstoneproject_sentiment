@@ -104,8 +104,12 @@ class UserEmulate:
             
         if isinstance(inp_max_delay, float):
             self.max_delay = inp_max_delay
-        
-        
+       
+    
+    
+    def updatecurrentstate(self):
+        self.last_time = time.time()
+        self.numb_load += 1
         
         
     def pauserealuseremulate(self) -> None:
@@ -123,13 +127,13 @@ class UserEmulate:
             pause_time = sts.gamma.rvs(a = 1, loc = 1, scale = 2, size=1)[0]
 
         if (time.time() - self.last_time) > pause_time:
+            self.updatecurrentstate()
             return
 
         if pause_time >= self.min_delay and pause_time <= self.max_delay:
             #print(pause_time)
             time.sleep(pause_time - abs(time.time() - self.last_time))
-            self.last_time = time.time()
-            self.numb_load += 1
+            self.updatecurrentstate()
             pass
         else:
             pauserealuseremulate()
