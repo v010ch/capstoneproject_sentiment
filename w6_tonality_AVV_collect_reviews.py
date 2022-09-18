@@ -88,7 +88,6 @@ class UserEmulate:
 
 
         
-        
     def reset(self, inp_min_delay: Optional[float], inp_max_delay: Optional[float]) -> None:
         """
         Сброс парметров и выставление новых мин и макс задержки
@@ -108,9 +107,13 @@ class UserEmulate:
     
     
     def updatecurrentstate(self):
+        """
+        Обновление внутреннего состояния класса
+        """
         self.last_time = time.time()
         self.numb_load += 1
         
+
         
     def pauserealuseremulate(self) -> None:
         """
@@ -216,15 +219,12 @@ for page_number, url in pbar.tqdm(enumerate(sites[:40]), position=0, leave = Tru
     # load url
     driver.get(url)
     # reviews by phones
-    #phone_names = driver.find_elements_by_class_name('title')
     phone_names = driver.find_elements(By.CLASS_NAME, 'title')
     phone_names = [el.text for el in phone_names]
     # some data doubled. stay only one from two
-    #phones = driver.find_elements_by_class_name('read-all-reviews-link')
     phones = driver.find_elements(By.CLASS_NAME, 'read-all-reviews-link')
     phones = [el.get_property('href') for idx, el in enumerate(phones) if idx%2 == 0]
     # number of reviews on this url
-    #ttl_size = driver.find_elements_by_class_name('counter')
     ttl_size = driver.find_elements(By.CLASS_NAME, 'counter')
     ttl_size = [int(el.get_property('innerHTML')) for idx, el in enumerate(ttl_size) if idx%2 == 0]
     
@@ -239,12 +239,10 @@ for page_number, url in pbar.tqdm(enumerate(sites[:40]), position=0, leave = Tru
     index = 0
     #for idx in tqdm(range(len(phones))):
     for idx in pbar.tqdm(range(len(phones)), position=1, leave = True):
-    #for idx in pbar.tqdm(range(3), position=0, leave = True):
         #print(phone_names[idx], phones[idx])
         ue.pauserealuseremulate()
         driver.get(phones[idx])
         
-        #reviews = driver.find_elements_by_class_name('more')
         reviews = driver.find_elements(By.CLASS_NAME, 'more')
         reviews = [el.get_property('href') for el in reviews]
         
@@ -254,12 +252,9 @@ for page_number, url in pbar.tqdm(enumerate(sites[:40]), position=0, leave = Tru
             driver.get(review_link)
             
             # zero rating - just ad
-            #rating = driver.find_elements_by_class_name("fivestarWidgetStatic")[1]
             rating = driver.find_elements(By.CLASS_NAME, "fivestarWidgetStatic")[1]
-            #rating = len(rating.find_elements_by_class_name('on'))
             rating = len(rating.find_elements(By.CLASS_NAME, 'on'))
             #print(rating)
-            #text = driver.find_elements_by_class_name("views-field-teaser")[0].text
             text = driver.find_elements(By.CLASS_NAME, "views-field-teaser")[0].text
             #print(text[:20])
             reviews_page_df.loc[index, 'phone']  = phone_names[idx]

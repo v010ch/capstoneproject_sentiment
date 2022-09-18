@@ -56,7 +56,7 @@ class ModelClassTemplate():
         return:
             str - отзыв, очищенный от всего кроме слов
         """
-        return clean_text(inp_text)
+        return self.clean_text(inp_text)
         
         
         
@@ -64,7 +64,7 @@ class ModelClassTemplate():
         """
         Шасблон для функции определения тональности
         """
-        text = prepare_text(inp_text)
+        text = self.prepare_text(inp_text)
         pred = self.model.predict(text)
         
         return pred
